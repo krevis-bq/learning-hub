@@ -18,6 +18,12 @@ interface DocGroup {
 const categoryConfig: Record<string, { name: string; description: string; icon: string; order: number }> = {
   rag: { name: 'RAG 知识库', description: '从零开始系统学习检索增强生成技术，涵盖原理、组件、框架实战与生产部署', icon: 'database', order: 1 },
   'ai-agent': { name: 'AI Agent 工程', description: '从 Claude Code 源码中提炼的 Agent 架构设计方法论与工程实践', icon: 'bot', order: 2 },
+  'ai-daily': {
+    name: 'AI 每日动态',
+    description: '每日自动抓取的 AI 领域最新资讯汇总',
+    icon: 'newspaper',
+    order: 0,
+  },
   uncategorized: { name: '其他', description: '未分类文档', icon: 'file-text', order: 99 },
 };
 
