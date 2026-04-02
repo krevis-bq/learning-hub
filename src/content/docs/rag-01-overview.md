@@ -5,6 +5,8 @@ date: "2026-04-02"
 tags:
   - RAG
   - 基础概念
+category: rag
+category: rag
 order: 1
 ---
 

@@ -1,8 +1,12 @@
 ---
-title: AI Agent 开发入门
-description: 从 Claude Code 源码中提炼的 AI Agent 工程方法论，涵盖架构设计、工具系统、权限模型、上下文管理等核心话题。
+title: "AI Agent 开发入门"
+description: "从 Claude Code 源码中提炼的 AI Agent 工程方法论"
 date: "2026-04-02"
-tags: ["AI", "Agent", "Architecture"]
+category: ai-agent
+tags:
+  - AI
+  - Agent
+  - Architecture
 order: 1
 ---
 

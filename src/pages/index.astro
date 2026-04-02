@@ -4,6 +4,35 @@ import { getCollection } from 'astro:content';
 
 const docs = await getCollection('docs');
 const sortedDocs = docs.sort((a, b) => (a.data.order ?? 999) - (b.data.order ?? 999));
+
+// 按文档库分组
+interface DocGroup {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  order: number;
+  docs: typeof docs;
+}
+
+const categoryConfig: Record<string, { name: string; description: string; icon: string; order: number }> = {
+  rag: { name: 'RAG 知识库', description: '从零开始系统学习检索增强生成技术，涵盖原理、组件、框架实战与生产部署', icon: 'database', order: 1 },
+  'ai-agent': { name: 'AI Agent 工程', description: '从 Claude Code 源码中提炼的 Agent 架构设计方法论与工程实践', icon: 'bot', order: 2 },
+  uncategorized: { name: '其他', description: '未分类文档', icon: 'file-text', order: 99 },
+};
+
+// 构建 JS 对象用于前端交互（避免内联脚本拼接 HTML）
+const groupsData: Record<string, DocGroup> = {};
+sortedDocs.forEach(doc => {
+  const cat = doc.data.category || 'uncategorized';
+  if (!groupsData[cat]) {
+    const config = categoryConfig[cat] || categoryConfig['uncategorized'];
+    groupsData[cat] = { id: cat, name: config.name, description: config.description, icon: config.icon, order: config.order, docs: [] };
+  }
+  groupsData[cat].docs.push(doc);
+});
+
+const groupsArray = Object.values(groupsData).sort((a, b) => a.order - b.order);
 ---
 
 <BaseLayout title="Learning Hub" description="学习文档中心">
@@ -11,25 +40,75 @@ const sortedDocs = docs.sort((a, b) => (a.data.order ?? 999) - (b.data.order ?? 
   <section style="padding:var(--space-section) 2rem;text-align:center;">
     <div style="max-width:600px;margin:0 auto;">
       <h1 style="font-size:3rem;font-weight:700;letter-spacing:-0.04em;margin-bottom:1rem;">学习文档中心</h1>
-      <p style="font-size:1.15rem;color:var(--text-muted);line-height:1.7;">系统性整理的技术学习笔记与实践方法论。<br/>每一篇都源自真实项目的深度思考。</p>
+      <p style="font-size:1.15rem;color:var(--text-muted);line-height:1.7;">系统性整理的技术学习笔记与实践方法论。<br/>选择一个文档库开始学习。</p>
     </div>
   </section>
 
-  <!-- Docs Grid -->
+  <!-- Doc Libraries -->
   <section style="max-width:var(--max-width);margin:0 auto;padding:0 2rem var(--space-section);">
-    <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(320px, 1fr));gap:var(--space-element);">
-      {sortedDocs.map(doc => (
-        <a href={`/docs/${doc.id}`} style="display:block;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:2rem;transition:border-color 0.2s, background 0.2s;text-decoration:none;" onmouseover="this.style.borderColor='rgba(255,255,255,0.2)';this.style.background='#161616'" onmouseout="this.style.borderColor='var(--border)';this.style.background='var(--bg-card)'">
-          <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1rem;">
-            {doc.data.tags?.map(tag => (
-              <span style="font-size:0.7rem;padding:0.2rem 0.6rem;border-radius:var(--radius-full);background:rgba(255,255,255,0.08);color:var(--text-muted);font-weight:500;">{tag}</span>
-            ))}
+    <div id="doc-groups" style="display:flex;flex-direction:column;gap:var(--space-group);">
+      {groupsArray.map(group => (
+        <div class="doc-group" style="border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;">
+          <!-- Group Header -->
+          <button
+            class="group-header"
+            data-group-id={group.id}
+            style="width:100%;display:flex;align-items:center;justify-content:space-between;padding:1.5rem 2rem;background:var(--bg-card);border:none;cursor:pointer;text-align:left;color:var(--text-primary);transition:background 0.15s;"
+            onmouseover="this.style.background='#161616'"
+            onmouseout="this.style.background='var(--bg-card)'"
+          >
+            <div style="display:flex;align-items:center;gap:1rem;">
+              <div style="width:40px;height:40px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.05);border-radius:var(--radius-md);">
+                <i data-lucide={group.icon} style="width:20px;height:20px;color:var(--text-secondary);"></i>
+              </div>
+              <div>
+                <div style="font-size:1.15rem;font-weight:600;">{group.name}</div>
+                <div style="font-size:0.85rem;color:var(--text-muted);margin-top:2px;">{group.description}</div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:0.75rem;">
+              <span style="font-size:0.75rem;color:var(--text-dim);">{group.docs.length} 篇文档</span>
+              <i data-lucide="chevron-down" class="group-chevron" data-group-id={group.id} style="width:18px;height:18px;color:var(--text-dim);transition:transform 0.2s;"></i>
+            </div>
+          </button>
+          <!-- Group Docs -->
+          <div class="group-docs" data-group-id={group.id} style="display:none;border-top:1px solid var(--border);">
+            <div style="padding:1rem 2rem 1.5rem;">
+              {group.docs.map(doc => (
+                <a href={`/docs/${doc.id}`} style="display:flex;align-items:center;gap:1rem;padding:0.75rem 1rem;border-radius:var(--radius-md);text-decoration:none;transition:background 0.15s;margin-bottom:4px;" onmouseover="this.style.background='rgba(255,255,255,0.04)'" onmouseout="this.style.background='transparent'">
+                  <div style="flex:1;min-width:0;">
+                    <div style="font-size:0.95rem;font-weight:500;color:var(--text-primary);">{doc.data.title}</div>
+                    <div style="font-size:0.8rem;color:var(--text-dim);margin-top:2px;">{doc.data.description}</div>
+                  </div>
+                  <div style="display:flex;gap:0.4rem;flex-shrink:0;">
+                    {doc.data.tags?.slice(0, 3).map(tag => (
+                      <span style="font-size:0.65rem;padding:0.15rem 0.5rem;border-radius:var(--radius-full);background:rgba(255,255,255,0.06);color:var(--text-dim);">{tag}</span>
+                    ))}
+                  </div>
+                  <i data-lucide="chevron-right" style="width:16px;height:16px;color:var(--text-dim);flex-shrink:0;"></i>
+                </a>
+              ))}
+            </div>
           </div>
-          <h2 style="font-size:1.25rem;font-weight:600;margin-bottom:0.5rem;color:var(--text-primary);">{doc.data.title}</h2>
-          <p style="font-size:0.9rem;color:var(--text-muted);line-height:1.6;margin-bottom:1rem;">{doc.data.description}</p>
-          <div style="font-size:0.75rem;color:var(--text-dim);">{doc.data.date}</div>
-        </a>
+        </div>
       ))}
     </div>
   </section>
+
+  <script define:vars={{}}>
+    // Lucide icons
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+
+    // Accordion toggle
+    document.querySelectorAll('.group-header').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const gid = btn.dataset.groupId;
+        const docs = document.querySelector(`.group-docs[data-group-id="${gid}"]`);
+        const chevron = document.querySelector(`.group-chevron[data-group-id="${gid}"]`);
+        const isOpen = docs.style.display !== 'none';
+        docs.style.display = isOpen ? 'none' : 'block';
+        if (chevron) chevron.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
+      });
+    });
+  </script>
 </BaseLayout>
