@@ -1,0 +1,105 @@
+---
+import BaseLayout from './BaseLayout.astro';
+
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const { title, description = '' } = Astro.props;
+---
+
+<BaseLayout title={`${title} · Learning Hub`} description={description}>
+  <div style="display:flex;max-width:var(--max-width);margin:0 auto;padding:var(--space-group) 2rem;">
+    <!-- Sidebar -->
+    <aside id="sidebar" style="width:var(--sidebar-width);flex-shrink:0;position:sticky;top:80px;align-self:flex-start;max-height:calc(100vh - 100px);overflow-y:auto;padding-right:var(--space-element);display:block;">
+      <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-dim);margin-bottom:0.75rem;font-weight:600;">目录</div>
+      <nav id="toc-nav"></nav>
+    </aside>
+
+    <!-- Content -->
+    <article class="prose" id="doc-content" style="flex:1;min-width:0;padding-left:var(--space-element);">
+      <slot />
+    </article>
+  </div>
+
+  <!-- Mobile sidebar toggle -->
+  <button id="sidebar-toggle" style="display:none;position:fixed;bottom:1.5rem;right:1.5rem;z-index:200;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-full);width:44px;height:44px;cursor:pointer;align-items:center;justify-content:center;" aria-label="目录">
+    <i data-lucide="list" style="width:20px;height:20px;color:var(--text-secondary);"></i>
+  </button>
+
+  <style>
+    .toc-link {
+      display: block;
+      padding: 0.35rem 0;
+      font-size: 0.82rem;
+      color: var(--text-dim);
+      line-height: 1.5;
+      transition: color 0.15s;
+      border-left: 2px solid transparent;
+      padding-left: 0.75rem;
+    }
+    .toc-link:hover { color: var(--text-secondary); }
+    .toc-link.toc-active {
+      color: var(--text-primary);
+      border-left-color: var(--text-primary);
+    }
+    .toc-link.toc-h3 {
+      padding-left: 1.5rem;
+      font-size: 0.78rem;
+    }
+
+    @media (max-width: 768px) {
+      #sidebar {
+        display: none;
+        position: fixed;
+        top: 60px;
+        left: 0;
+        width: 280px;
+        height: calc(100vh - 60px);
+        background: var(--bg-primary);
+        border-right: 1px solid var(--border);
+        z-index: 150;
+        padding: 1.5rem;
+        max-height: none;
+      }
+      #sidebar.open { display: block; }
+      #sidebar-toggle { display: flex; }
+    }
+  </style>
+
+  <script>
+    // Build TOC from headings
+    const content = document.getElementById('doc-content');
+    const tocNav = document.getElementById('toc-nav');
+    const headings = content?.querySelectorAll('h2, h3') || [];
+
+    headings.forEach(h => {
+      const link = document.createElement('a');
+      link.className = `toc-link${h.tagName === 'H3' ? ' toc-h3' : ''}`;
+      link.href = `#${h.id}`;
+      link.textContent = h.textContent;
+      link.dataset.tocSlug = h.id;
+      tocNav?.appendChild(link);
+    });
+
+    // Highlight on scroll
+    const tocLinks = document.querySelectorAll('.toc-link');
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          tocLinks.forEach(l => l.classList.remove('toc-active'));
+          const active = document.querySelector(`[data-toc-slug="${entry.target.id}"]`);
+          if (active) active.classList.add('toc-active');
+        }
+      });
+    }, { rootMargin: '-80px 0px -70% 0px' });
+
+    headings.forEach(h => observer.observe(h));
+
+    // Mobile sidebar
+    const sidebar = document.getElementById('sidebar');
+    const toggle = document.getElementById('sidebar-toggle');
+    toggle?.addEventListener('click', () => sidebar?.classList.toggle('open'));
+  </script>
+</BaseLayout>

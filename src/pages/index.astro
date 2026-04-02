@@ -1,0 +1,35 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+
+const docs = await getCollection('docs');
+const sortedDocs = docs.sort((a, b) => (a.data.order ?? 999) - (b.data.order ?? 999));
+---
+
+<BaseLayout title="Learning Hub" description="学习文档中心">
+  <!-- Hero -->
+  <section style="padding:var(--space-section) 2rem;text-align:center;">
+    <div style="max-width:600px;margin:0 auto;">
+      <h1 style="font-size:3rem;font-weight:700;letter-spacing:-0.04em;margin-bottom:1rem;">学习文档中心</h1>
+      <p style="font-size:1.15rem;color:var(--text-muted);line-height:1.7;">系统性整理的技术学习笔记与实践方法论。<br/>每一篇都源自真实项目的深度思考。</p>
+    </div>
+  </section>
+
+  <!-- Docs Grid -->
+  <section style="max-width:var(--max-width);margin:0 auto;padding:0 2rem var(--space-section);">
+    <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(320px, 1fr));gap:var(--space-element);">
+      {sortedDocs.map(doc => (
+        <a href={`/docs/${doc.id}`} style="display:block;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:2rem;transition:border-color 0.2s, background 0.2s;text-decoration:none;" onmouseover="this.style.borderColor='rgba(255,255,255,0.2)';this.style.background='#161616'" onmouseout="this.style.borderColor='var(--border)';this.style.background='var(--bg-card)'">
+          <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1rem;">
+            {doc.data.tags?.map(tag => (
+              <span style="font-size:0.7rem;padding:0.2rem 0.6rem;border-radius:var(--radius-full);background:rgba(255,255,255,0.08);color:var(--text-muted);font-weight:500;">{tag}</span>
+            ))}
+          </div>
+          <h2 style="font-size:1.25rem;font-weight:600;margin-bottom:0.5rem;color:var(--text-primary);">{doc.data.title}</h2>
+          <p style="font-size:0.9rem;color:var(--text-muted);line-height:1.6;margin-bottom:1rem;">{doc.data.description}</p>
+          <div style="font-size:0.75rem;color:var(--text-dim);">{doc.data.date}</div>
+        </a>
+      ))}
+    </div>
+  </section>
+</BaseLayout>
