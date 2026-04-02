@@ -63,7 +63,7 @@ const categoryName = categoryMap[category] || category;
     <i data-lucide="list" style="width:20px;height:20px;color:var(--text-secondary);"></i>
   </button>
 
-  <style>
+  <style is:global>
     .toc-link {
       display: block;
       padding: 0.35rem 0;
@@ -104,19 +104,25 @@ const categoryName = categoryMap[category] || category;
     }
   </style>
 
-  <script>
+  <script is:inline>
     // Build TOC from headings in the document content
     const content = document.getElementById('doc-content');
     const tocNav = document.getElementById('toc-nav');
     const headings = content?.querySelectorAll('h2, h3') || [];
 
+    // Get the astro scope id from toc-nav to apply to dynamic elements
+    const astroScope = tocNav?.getAttribute('data-astro-cid-');
+    // Find the actual scoped attribute
+    const tocNavAttrs = tocNav?.getAttributeNames() || [];
+    const scopeAttr = tocNavAttrs.find(a => a.startsWith('data-astro-cid-')) || '';
+
     headings.forEach(h => {
       if (!h.id) {
-        // Generate id from text if missing
         h.id = h.textContent?.trim().toLowerCase().replace(/[^\w\u4e00-\u9fff]+/g, '-').replace(/^-|-$/g, '') || '';
       }
       const link = document.createElement('a');
       link.className = 'toc-link' + (h.tagName === 'H3' ? ' toc-h3' : '');
+      if (scopeAttr) link.setAttribute(scopeAttr, '');
       link.href = '#' + h.id;
       link.textContent = h.textContent;
       link.dataset.tocSlug = h.id;
