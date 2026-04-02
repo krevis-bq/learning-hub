@@ -1,12 +1,11 @@
 ---
 title: "01 - RAG 概述与核心原理"
-description: "理解 RAG 是什么、为什么需要它、它解决了什么问题，以及完整的工作流程"
+description: "理解 RAG 是什么、为什么需要它、它解决了什么问题"
 date: "2026-04-02"
+category: rag
 tags:
   - RAG
   - 基础概念
-category: rag
-category: rag
 order: 1
 ---
 
