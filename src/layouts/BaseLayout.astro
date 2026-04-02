@@ -3,7 +3,16 @@ import '../styles/global.css';
 import { getCollection } from 'astro:content';
 
 const docs = await getCollection('docs');
-const sortedDocs = docs.sort((a, b) => (a.data.order ?? 999) - (b.data.order ?? 999));
+
+// 按文档库分组用于导航
+const categoryMap: Record<string, string> = {
+  rag: 'RAG 知识库',
+  'ai-agent': 'AI Agent',
+  uncategorized: '其他',
+};
+
+// 去重获取所有 category
+const categories = [...new Set(docs.map(d => d.data.category || 'uncategorized'))];
 
 interface Props {
   title?: string;
@@ -26,24 +35,22 @@ const { title = 'Learning Hub', description = '学习文档中心' } = Astro.pro
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 </head>
 <body>
-  <!-- Nav -->
   <nav style="position:sticky;top:0;z-index:100;background:rgba(0,0,0,0.85);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);">
     <div style="max-width:var(--max-width);margin:0 auto;padding:0 2rem;display:flex;align-items:center;justify-content:space-between;height:60px;">
       <a href="/" style="font-size:1.1rem;font-weight:700;color:var(--text-primary);letter-spacing:-0.03em;">Learning Hub</a>
       <div style="display:flex;gap:2rem;align-items:center;">
-        {sortedDocs.map(doc => (
-          <a href={`/docs/${doc.id}`} style="font-size:0.85rem;color:var(--text-muted);transition:color 0.2s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='var(--text-muted)'">{doc.data.title}</a>
+        {categories.map(cat => (
+          <a href="/#cat-{cat}" style="font-size:0.85rem;color:var(--text-muted);transition:color 0.2s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='var(--text-muted)'">{categoryMap[cat] || cat}</a>
         ))}
       </div>
-      <!-- Mobile menu button -->
       <button id="mobile-menu-btn" style="display:none;background:none;border:none;color:var(--text-primary);cursor:pointer;" aria-label="菜单">
         <i data-lucide="menu" style="width:22px;height:22px;"></i>
       </button>
     </div>
-    <!-- Mobile menu -->
     <div id="mobile-menu" style="display:none;padding:1rem 2rem 1.5rem;border-top:1px solid var(--border);">
-      {sortedDocs.map(doc => (
-        <a href={`/docs/${doc.id}`} style="display:block;padding:0.6rem 0;font-size:0.9rem;color:var(--text-secondary);">{doc.data.title}</a>
+      <a href="/" style="display:block;padding:0.6rem 0;font-size:0.9rem;color:var(--text-secondary);">首页</a>
+      {categories.map(cat => (
+        <a href="/#cat-{cat}" style="display:block;padding:0.6rem 0;font-size:0.9rem;color:var(--text-secondary);">{categoryMap[cat] || cat}</a>
       ))}
     </div>
   </nav>
@@ -52,34 +59,20 @@ const { title = 'Learning Hub', description = '学习文档中心' } = Astro.pro
     <slot />
   </main>
 
-  <!-- Footer -->
   <footer style="border-top:1px solid var(--border);padding:3rem 2rem;text-align:center;color:var(--text-dim);font-size:0.8rem;margin-top:var(--space-section);">
     Learning Hub · Built with Astro
   </footer>
 
   <script>
-    // Init Lucide icons
     if (typeof lucide !== 'undefined') lucide.createIcons();
-
-    // Mobile menu
     const btn = document.getElementById('mobile-menu-btn');
     const menu = document.getElementById('mobile-menu');
     const mq = window.matchMedia('(max-width: 768px)');
-
     function checkMobile() {
-      if (mq.matches) {
-        btn!.style.display = 'block';
-      } else {
-        btn!.style.display = 'none';
-        menu!.style.display = 'none';
-      }
+      if (mq.matches) { btn!.style.display = 'block'; } else { btn!.style.display = 'none'; menu!.style.display = 'none'; }
     }
-    mq.addEventListener('change', checkMobile);
-    checkMobile();
-
-    btn?.addEventListener('click', () => {
-      menu!.style.display = menu!.style.display === 'none' ? 'block' : 'none';
-    });
+    mq.addEventListener('change', checkMobile); checkMobile();
+    btn?.addEventListener('click', () => { menu!.style.display = menu!.style.display === 'none' ? 'block' : 'none'; });
   </script>
 </body>
 </html>

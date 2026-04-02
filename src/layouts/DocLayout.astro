@@ -1,20 +1,55 @@
 ---
 import BaseLayout from './BaseLayout.astro';
+import { getCollection } from 'astro:content';
 
 interface Props {
   title: string;
   description?: string;
+  category?: string;
+  currentId?: string;
 }
 
-const { title, description = '' } = Astro.props;
+const { title, description = '', category = '', currentId = '' } = Astro.props;
+const allDocs = await getCollection('docs');
+const sameCategoryDocs = allDocs
+  .filter(d => (d.data.category || 'uncategorized') === category && d.id !== currentId)
+  .sort((a, b) => (a.data.order ?? 999) - (b.data.order ?? 999));
+
+const categoryMap: Record<string, string> = {
+  rag: 'RAG 知识库',
+  'ai-agent': 'AI Agent',
+  uncategorized: '其他',
+};
+const categoryName = categoryMap[category] || category;
 ---
 
 <BaseLayout title={`${title} · Learning Hub`} description={description}>
-  <div style="display:flex;max-width:var(--max-width);margin:0 auto;padding:var(--space-group) 2rem;">
-    <!-- Sidebar -->
+  <div style="display:flex;max-width:var(--max-width);margin:0 auto;padding:var(--space-group) 2rem;position:relative;">
+    <!-- Sidebar: TOC -->
     <aside id="sidebar" style="width:var(--sidebar-width);flex-shrink:0;position:sticky;top:80px;align-self:flex-start;max-height:calc(100vh - 100px);overflow-y:auto;padding-right:var(--space-element);display:block;">
-      <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-dim);margin-bottom:0.75rem;font-weight:600;">目录</div>
+      <!-- Back link -->
+      <a href="/" style="display:flex;align-items:center;gap:0.4rem;font-size:0.75rem;color:var(--text-dim);margin-bottom:1rem;transition:color 0.2s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='var(--text-dim)'">
+        <i data-lucide="arrow-left" style="width:14px;height:14px;"></i>
+        返回文档库
+      </a>
+
+      <!-- Category label -->
+      <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-dim);margin-bottom:0.5rem;font-weight:600;">{categoryName}</div>
+      <div style="font-size:0.95rem;font-weight:600;color:var(--text-primary);margin-bottom:1.25rem;">{title}</div>
+
+      <!-- TOC -->
+      <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-dim);margin-bottom:0.75rem;font-weight:600;">本文目录</div>
       <nav id="toc-nav"></nav>
+
+      <!-- Other docs in same category -->
+      {sameCategoryDocs.length > 0 && (
+        <div style="margin-top:1.5rem;padding-top:1rem;border-top:1px solid var(--border);">
+          <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-dim);margin-bottom:0.5rem;font-weight:600;">其他文档</div>
+          {sameCategoryDocs.map(doc => (
+            <a href={`/docs/${doc.id}`} style="display:block;padding:0.35rem 0;font-size:0.78rem;color:var(--text-dim);line-height:1.4;transition:color 0.15s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='var(--text-dim)'">{doc.data.title}</a>
+          ))}
+        </div>
+      )}
     </aside>
 
     <!-- Content -->
@@ -38,6 +73,7 @@ const { title, description = '' } = Astro.props;
       transition: color 0.15s;
       border-left: 2px solid transparent;
       padding-left: 0.75rem;
+      margin-bottom: 0.1rem;
     }
     .toc-link:hover { color: var(--text-secondary); }
     .toc-link.toc-active {
@@ -69,37 +105,44 @@ const { title, description = '' } = Astro.props;
   </style>
 
   <script>
-    // Build TOC from headings
+    // Build TOC from headings in the document content
     const content = document.getElementById('doc-content');
     const tocNav = document.getElementById('toc-nav');
     const headings = content?.querySelectorAll('h2, h3') || [];
 
     headings.forEach(h => {
+      if (!h.id) {
+        // Generate id from text if missing
+        h.id = h.textContent?.trim().toLowerCase().replace(/[^\w\u4e00-\u9fff]+/g, '-').replace(/^-|-$/g, '') || '';
+      }
       const link = document.createElement('a');
-      link.className = `toc-link${h.tagName === 'H3' ? ' toc-h3' : ''}`;
-      link.href = `#${h.id}`;
+      link.className = 'toc-link' + (h.tagName === 'H3' ? ' toc-h3' : '');
+      link.href = '#' + h.id;
       link.textContent = h.textContent;
       link.dataset.tocSlug = h.id;
       tocNav?.appendChild(link);
     });
 
-    // Highlight on scroll
+    // Highlight current section on scroll
     const tocLinks = document.querySelectorAll('.toc-link');
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
           tocLinks.forEach(l => l.classList.remove('toc-active'));
-          const active = document.querySelector(`[data-toc-slug="${entry.target.id}"]`);
+          const active = document.querySelector('[data-toc-slug="' + entry.target.id + '"]');
           if (active) active.classList.add('toc-active');
         }
       });
     }, { rootMargin: '-80px 0px -70% 0px' });
 
-    headings.forEach(h => observer.observe(h));
+    headings.forEach(h => { if (h.id) observer.observe(h); });
 
     // Mobile sidebar
     const sidebar = document.getElementById('sidebar');
     const toggle = document.getElementById('sidebar-toggle');
     toggle?.addEventListener('click', () => sidebar?.classList.toggle('open'));
+
+    // Init lucide icons
+    if (typeof lucide !== 'undefined') lucide.createIcons();
   </script>
 </BaseLayout>
